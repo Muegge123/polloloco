@@ -1,11 +1,12 @@
 class MovableObject {
-  x = 50;
+  x = 0;
   y = 150;
   img;
   imgCache = [];
   height = 300;
   width = 150;
   currentImg = 0;
+  otherDirection = false;
 
   loadImage(path) {
     this.img = new Image();
@@ -18,6 +19,13 @@ class MovableObject {
       img.src = path;
       this.imgCache[path] = img;
     });
+  }
+
+  playAnimation(images) {
+    let i = this.currentImg % this.IMAGES_WALKING.length; // modulo
+    let path = images[i];
+    this.img = this.imgCache[path];
+    this.currentImg++;
   }
 
   moveRight() {
