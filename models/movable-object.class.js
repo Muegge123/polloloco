@@ -3,11 +3,14 @@ class MovableObject extends DrawableObject {
   speedY = 0;
   acceleration = 2.5;
   energy = 100;
-  lastHit = 0;
+  lastHitTime = 0;
   bottles = 0;
   lastBottle = 0;
   coins = 0;
   lastCoin = 0;
+
+  speedYBuffer = [];
+  bufferSize = 5; // Anzahl der Frames, die im Puffer gespeichert werden sollen
 
   applyGravity() {
     setInterval(() => {
@@ -22,21 +25,61 @@ class MovableObject extends DrawableObject {
     return this.y < 150;
   }
 
+  updateSpeedYBuffer() {
+    // Fügen Sie den aktuellen `speedY` Wert zum Puffer hinzu
+    this.speedYBuffer.push(this.speedY);
+
+    // Entfernen Sie den ältesten `speedY` Wert, wenn der Puffer zu groß wird
+    if (this.speedYBuffer.length > this.bufferSize) {
+      this.speedYBuffer.shift();
+    }
+  }
+
   isColliding(obj) {
-    return (
-      /*
+    let collisionX = this.x + this.width > obj.x && this.x < obj.x + obj.width;
+    let collisionY =
+      this.y + this.height > obj.y && this.y < obj.y + obj.height;
+
+    if (collisionX && collisionY) {
+      // Check if the collision is from above
+      let isCollisionFromAbove =
+        this.y + this.height <= obj.y + obj.height && this.speedY < 0;
+      console.log("this.y + this.height ", this.y, this.height);
+      console.log("obj.y + obj.height; ", obj.y, obj.height);
+      console.log(this.speedY);
+
+      if (isCollisionFromAbove) {
+        console.log(this.speedY);
+        // Handle the collision from above (e.g., make the enemy disappear)
+        console.log("Collision from above detected");
+        return "above";
+      } else {
+        // console.log("Side collision detected");
+        return "side";
+      }
+    }
+
+    return false;
+  }
+  /*
+        // Alternativcode für diese function oben
       this.x + this.width >= obj.x &&
       this.x <= obj.x + obj.width &&
       this.y + this.offsetY + this.height >= obj.y &&
       this.y + this.offsetY <= obj.y + obj.height &&
       obj.onCollisionCourse
       */
+  /*
+  isColliding(obj) {
+    return (
+
       this.x + this.width > obj.x &&
       this.y + this.height > obj.y &&
       this.x < obj.x &&
       this.y < obj.y + obj.height
     );
   }
+  */
 
   hit() {
     this.energy -= 5;
@@ -67,7 +110,7 @@ class MovableObject extends DrawableObject {
   }
 
   gotCoin() {
-    this.coins += 5;
+    this.coins += 10;
     if (this.coins > 100) {
       this.coins = 100;
     } else {

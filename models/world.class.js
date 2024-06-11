@@ -16,9 +16,8 @@ class World {
     this.ctx = canvas.getContext("2d");
     this.canvas = canvas;
     this.keyboard = keyboard;
-    this.draw();
     this.setWorld();
-    this.checkCollisons();
+    this.draw();
   }
 
   draw() {
@@ -26,27 +25,26 @@ class World {
     this.ctx.translate(this.camera_x, 0);
     this.addObjectsToMap(this.level.backgroundObjects);
     this.addObjectsToMap(this.level.clouds);
-    // ------- ab hier fixe Objekte in sich bewegender world wie statusbar
-    this.ctx.translate(-this.camera_x, 0); // Einfügestelle für statusbar zurück schieben (im Koordinatensystem)
+
+    this.ctx.translate(-this.camera_x, 0);
     this.addToMap(this.statusbar);
     this.addToMap(this.bottlesbar);
     this.addToMap(this.coinsbar);
     this.addToMap(this.endbossbar);
-    this.ctx.translate(this.camera_x, 0); // Einfügestelle wieder auf aktuelle camera_x schieben
-    // ------- hier Ende fixe Objekte
-    this.addToMap(this.character);
+    this.ctx.translate(this.camera_x, 0);
 
+    this.addToMap(this.character);
     this.addObjectsToMap(this.level.enemies);
     this.addObjectsToMap(this.level.bottles);
     this.addObjectsToMap(this.level.coins);
 
     this.ctx.translate(-this.camera_x, 0);
 
-    // Kollisionserkennung mit Flaschen und Coins in requestAnimation Frame gezogen --> wird dann jedes Mal wenn gedrawt wird aufgerufen
+    // Kollisionserkennung bei jedem Frame
+    this.checkCollisons();
     this.checkBottleContact();
     this.checkCoinContact();
 
-    // draw wird immer wieder aufgerufen durch requesAnimationFram
     let self = this;
     requestAnimationFrame(function () {
       self.draw();
@@ -58,51 +56,45 @@ class World {
   }
 
   checkCollisons() {
-    setInterval(() => {
-      this.level.enemies.forEach((enemy) => {
-        if (this.character.isColliding(enemy)) {
+    this.level.enemies.forEach((enemy, index) => {
+      let collisionType = this.character.isColliding(enemy);
+      if (collisionType === "above") {
+        //console.log("Enemy hit from above", index);
+        this.removeChicken(index);
+      } else if (collisionType === "side") {
+        // verzögern damit nicht zu schnell energy abgezogen wird
+        const currentTime = Date.now();
+        if (currentTime - this.character.lastHitTime > 200) {
+          //console.log("Side collision with character", this.character.energy);
           this.character.hit();
+          this.character.lastHitTime = currentTime; // Aktualisieren des Zeitstempels
           this.statusbar.setPercentage(this.character.energy);
-          console.log("collision with character ", this.character.energy);
         }
-        if (this.character.energy <= 0) {
-          console.log("is game over");
-        }
-      });
-    }, 200);
+      }
+      if (this.character.energy <= 0) {
+        //console.log("Game over");
+      }
+    });
   }
 
   checkBottleContact() {
-    setInterval(() => {
-      this.level.bottles.forEach((bottle, index) => {
-        if (this.character.isColliding(bottle)) {
-          this.character.gotBottle();
-          this.bottlesbar.setPercentage(this.character.bottles);
-          console.log(
-            "bottle geschnappt bottles-status ",
-            this.character.bottles
-          );
-          this.removeBottle(index);
-        }
-        if (this.character.bottles <= 0) {
-        }
-      });
-    }, 200);
+    this.level.bottles.forEach((bottle, index) => {
+      if (this.character.isColliding(bottle)) {
+        this.character.gotBottle();
+        this.bottlesbar.setPercentage(this.character.bottles);
+        this.removeBottle(index);
+      }
+    });
   }
 
   checkCoinContact() {
-    setInterval(() => {
-      this.level.coins.forEach((coin, index) => {
-        if (this.character.isColliding(coin)) {
-          this.character.gotCoin();
-          this.coinsbar.setPercentage(this.character.coins);
-          console.log("coin geschnappt bottles-status ", this.character.coins);
-          this.removeCoin(index);
-        }
-        if (this.character.coins <= 0) {
-        }
-      });
-    }, 200);
+    this.level.coins.forEach((coin, index) => {
+      if (this.character.isColliding(coin)) {
+        this.character.gotCoin();
+        this.coinsbar.setPercentage(this.character.coins);
+        this.removeCoin(index);
+      }
+    });
   }
 
   removeBottle(index) {
@@ -111,6 +103,10 @@ class World {
 
   removeCoin(index) {
     this.level.coins.splice(index, 1);
+  }
+
+  removeChicken(index) {
+    this.level.enemies.splice(index, 1);
   }
 
   addObjectsToMap(objects) {
